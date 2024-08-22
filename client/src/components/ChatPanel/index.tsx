@@ -5,7 +5,7 @@ import {
   useEffect,
   useState
 } from 'react';
-import { LoaderCircle, ArrowUpIcon } from 'lucide-react';
+import { LoaderCircle, ArrowUpIcon, PlusIcon } from 'lucide-react';
 
 type Message = {
   sender: 'user' | 'bot';
@@ -109,6 +109,11 @@ const ChatPanel = () => {
     setInput(value);
   }, []);
 
+  const handleNewChat = () => {
+    setMessages([]);
+    localStorage.setItem('chatMessages', JSON.stringify([]));
+  };
+
   return (
     <section className="h-full max-w-3xl w-full px-10 pt-10 pb-6 flex flex-col">
       <h2 className="text-center text-gray-500 font-semibold">
@@ -145,23 +150,36 @@ const ChatPanel = () => {
             type="text"
             name="user-prompt"
             id="user-prompt"
-            className="px-3 py-2 w-full outline-none text-sm"
+            className="px-3 py-2 w-full outline-none text-sm disabled:bg-white"
             placeholder="Type your message..."
             onChange={handlePromptChange}
             onKeyDown={handleEnterDown}
             value={input}
             disabled={isLoading}
           />
-          <div className="flex justify-end items-center px-3 pt-1 pb-2">
+          <div className="flex justify-between items-center px-3 pt-1 pb-2">
             <button
-              className="bg-blue-500 text-white p-1 text-sm rounded-full border border-blue-400 shadow shadow-blue-400"
+              className="flex items-center gap-x-2 bg-blue-500 text-white py-1 pl-2 pr-3 text-sm rounded-full border border-blue-400 shadow shadow-blue-400"
+              onClick={handleNewChat}
+            >
+              <PlusIcon size={20} />
+              <span className="font-medium text-sm">New Chat</span>
+            </button>
+            <button
+              className="bg-blue-500 text-white py-1 pl-2 pr-3 text-sm rounded-full border border-blue-400 shadow shadow-blue-400 flex items-center"
               onClick={handleSend}
               disabled={isLoading}
             >
               {isLoading ? (
-                <LoaderCircle size={20} className="animate-spin" />
+                <>
+                  <LoaderCircle size={20} className="animate-spin" />
+                  <span className="font-medium text-sm">Sending</span>
+                </>
               ) : (
-                <ArrowUpIcon size={20} />
+                <>
+                  <ArrowUpIcon size={20} />
+                  <span className="font-medium text-sm">Send</span>
+                </>
               )}
             </button>
           </div>
