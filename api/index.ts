@@ -14,7 +14,7 @@ const aiClient = new OpenAi({
 server.use(cors());
 server.use(express.json());
 
-server.post('/api/chat', async (req, res) => {
+server.post('/api', async (req, res) => {
   const userMessage = req.body.message;
 
   try {
