@@ -29,55 +29,64 @@ const ChatPanel = () => {
     localStorage.setItem('chatMessages', JSON.stringify(messages));
   }, [messages]);
 
-  const handleMessage = useCallback(
-    async (message: string) => {
-      setIsLoading(true);
-      setError(null);
-      setMessages([...messages, { sender: 'user', text: message }]);
+  const handleMessage = useCallback(async (message: string) => {
+    setIsLoading(true);
+    setError(null);
+    setMessages((prevMessages) => [...prevMessages, { sender: 'user', text: message }]);
 
-      try {
-        const response = await fetch(process.env.REACT_APP_LLM_URL as string, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ message })
+    try {
+      const response = await fetch(process.env.REACT_APP_LLM_URL as string, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message })
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not okay.');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      let done = false;
+      let botMessage = '';
+
+      while (!done) {
+        const { value, done: doneReading } = await reader?.read()!;
+        done = doneReading;
+
+        const chunkValue = decoder.decode(value, { stream: true });
+        botMessage += chunkValue;
+
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages];
+          const lastMessageIndex = updatedMessages.length - 1;
+
+          if (updatedMessages[lastMessageIndex]?.sender === 'bot') {
+            updatedMessages[lastMessageIndex].text = botMessage;
+          } else {
+            updatedMessages.push({ sender: 'bot', text: chunkValue });
+          }
+
+          return updatedMessages;
         });
 
-        if (!response.ok) {
-          throw new Error('Network response was not okay.');
-        }
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        let done = false;
-        let botMessage = ''; // Accumulate the full bot message
-
-        while (!done) {
-          const { value, done: doneReading } = await reader?.read()!;
-          done = doneReading;
-
-          const chunkValue = decoder.decode(value, { stream: true });
-          botMessage += chunkValue;
-        }
-
-        // Once the full response is received, update the state with the complete bot message
-        setMessages((prev) => [...prev, { sender: 'bot', text: botMessage }]);
-
-        console.log('Complete bot response:', botMessage);
-      } catch (err) {
-        console.error('Error during streaming:', err);
-        setError(
-          'An error occured while communicating with the server. Please try again.'
-        );
-      } finally {
-        setIsLoading(false);
-        setInput('');
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
-    },
-    [messages]
-  );
+
+      console.log('Complete bot response:', botMessage);
+    } catch (err) {
+      console.error('Error during streaming:', err);
+      setError(
+        'An error occurred while communicating with the server. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
+      setInput('');
+    }
+  }, []);
 
   const handleSend = useCallback(() => {
     if (input.trim() === '') return;
