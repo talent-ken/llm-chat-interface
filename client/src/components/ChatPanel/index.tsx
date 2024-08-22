@@ -1,7 +1,11 @@
-import { ChangeEventHandler, KeyboardEventHandler, useCallback, useState } from 'react';
+import {
+  ChangeEventHandler,
+  KeyboardEventHandler,
+  useCallback,
+  useEffect,
+  useState
+} from 'react';
 import { LoaderCircle, ArrowUpIcon } from 'lucide-react';
-
-import { classnames } from '../../lib/utils';
 
 type Message = {
   sender: 'user' | 'bot';
@@ -14,6 +18,17 @@ const ChatPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const savedMessages: string | null = localStorage.getItem('chatMessages');
+    if (savedMessages && savedMessages !== '[]') {
+      setMessages(JSON.parse(savedMessages));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
+
   const handleMessage = useCallback(
     async (message: string) => {
       setIsLoading(true);
@@ -21,8 +36,7 @@ const ChatPanel = () => {
       setMessages([...messages, { sender: 'user', text: message }]);
 
       try {
-        const url = 'http://localhost:3001/api/chat';
-        const response = await fetch(url, {
+        const response = await fetch(process.env.REACT_APP_LLM_URL as string, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
